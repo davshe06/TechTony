@@ -38,7 +38,8 @@
 
     <p class="sr-only">
       Controls: A and D or the left and right arrow keys move. Space, W or the up arrow jumps.
-      Hold Shift to sprint. P pauses. Enter starts or restarts the game.
+      Hold Shift to sprint. P pauses. M mutes and unmutes the music.
+      Enter starts or restarts the game.
     </p>
 
     <section class="overlay title-screen" id="screen-title" aria-labelledby="title-heading">
@@ -50,7 +51,7 @@
            AI chatbot are loose on the data centre floor. Stomp them, bank the coffee, reach the
            mainframe before the SLA expires.</p>
         <ul class="keycaps">
-          <li>A / D — move</li><li>Space — jump</li><li>Shift — sprint</li><li>P — pause</li>
+          <li>A / D — move</li><li>Space — jump</li><li>Shift — sprint</li><li>P — pause</li><li>M — music</li>
         </ul>
         <p class="bests" id="bests" hidden></p>
         <button class="btn" id="btn-start" type="button">Clock in</button>
@@ -79,6 +80,7 @@
 
   <footer class="statusbar">
     <span id="status-level">Data centre — floor 3</span>
+    <button class="linkbtn" id="btn-mute" type="button" aria-pressed="false">Music on</button>
     <span id="status-progress">Route to mainframe — 0%</span>
   </footer>
 

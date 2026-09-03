@@ -10,7 +10,8 @@ import { drawEnemy, drawCoffee, drawBit, drawPops, drawBoss, drawShot } from './
 import { GIANT_CHANCE, POWER_TICKS, makeGiant, stepGiants,
          auraVisible, drawAura, drawGiant } from './powerup.js';
 import { sfx, context as audioContext } from './audio.js';
-import { loadBests, recordRun, bestsLine } from './storage.js';
+import { loadBests, recordRun, bestsLine, loadMuted, saveMuted } from './storage.js';
+import * as music from './music.js';
 
 const START_LIVES = 3;
 const START_TIME = 300;
@@ -26,7 +27,7 @@ const dom = {
     win: el('screen-win'), pause: el('screen-pause')
   },
   overNote: el('over-note'), winNote: el('win-note'),
-  stage: el('stage'), bests: el('bests')
+  stage: el('stage'), bests: el('bests'), mute: el('btn-mute')
 };
 
 const renderer = new Renderer(dom.canvas);
@@ -60,6 +61,7 @@ function loadLevel() {
 
 function start() {
   audioContext();                       // first user gesture: unlock audio
+  music.play('level');
   game.state = { coffee: 0, bits: 0, lives: START_LIVES, time: START_TIME, pct: 0 };
   loadLevel();
   setScreen('play');
@@ -84,6 +86,9 @@ function showBests(b) {
 function setScreen(next) {
   game.screen = next;
   for (const [name, node] of Object.entries(dom.screens)) node.hidden = name !== next;
+  if (next === 'pause') music.suspend();
+  else if (next === 'play') music.resume();
+  else music.stop();
   if (next === 'over' || next === 'win') {
     showBests(recordRun({
       won: next === 'win',
@@ -132,6 +137,7 @@ function step() {
   // Promptbot wakes as the player closes on tile 208 and only ever spawns once.
   if (!game.boss && !game.bossDown && player.x > SPEC.bossAt * T - 60) {
     game.boss = makeBoss();
+    music.play('boss');
     sfx.bossIn();
   }
   if (game.boss && stepBoss(game.boss, player, game.shots, fx, out)) {
@@ -139,6 +145,7 @@ function step() {
     game.bossDown = true;
     game.shots = [];
     openGate(world, SPEC.gate);
+    music.play('level');
   }
   game.shots = stepShots(world, game.shots, player, fx);
   state.coffee += out.coffee;
@@ -214,6 +221,7 @@ window.addEventListener('keydown', e => {
     setScreen(game.screen === 'play' ? 'pause' : 'play');
     loop.resync();
   }
+  if (k === 'm') toggleMute();
   if (e.key === 'Enter' && game.screen !== 'play') start();
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
@@ -239,12 +247,24 @@ function fitStage() {
 window.addEventListener('resize', fitStage);
 fitStage();
 
+function toggleMute() {
+  const next = !music.isMuted();
+  music.setMuted(next);
+  saveMuted(next);
+  dom.mute.textContent = next ? 'Music off' : 'Music on';
+  dom.mute.setAttribute('aria-pressed', String(next));
+}
+
 for (const id of ['btn-start', 'btn-restart', 'btn-again']) el(id).addEventListener('click', start);
+dom.mute.addEventListener('click', toggleMute);
 
 // ---- go ----
 
 const loop = createLoop(() => { if (game.screen === 'play') step(); }, draw);
 dom.level.textContent = SPEC.name;
+music.setMuted(loadMuted());
+dom.mute.textContent = music.isMuted() ? 'Music off' : 'Music on';
+dom.mute.setAttribute('aria-pressed', String(music.isMuted()));
 showBests();
 loadLevel();
 loop.start();

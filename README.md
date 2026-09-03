@@ -20,7 +20,15 @@ as a warning.
 
 It does not make him immortal. Exposed cabling and open gaps still end a run, and Promptbot
 9000 or one of its prompt bolts will burn the charge off early instead of costing a life.
-Crates that don't roll a Giant Coffee still roll the usual one-hit shield.
+Crates that don't roll a Giant Coffee still roll the usual one-hit shield — which absorbs a
+hit from an enemy *or* from the floor cabling, launching you clear of the run either way.
+
+## Soundtrack
+
+The score is generated, not recorded: a small sequencer schedules square, triangle and noise
+voices straight onto the audio clock, so the whole soundtrack adds no download at all. There
+is a driving level theme and a faster, more chromatic one that takes over when Promptbot 9000
+wakes up. `M` or the button under the canvas mutes it, and the choice is remembered.
 
 ## Controls
 
@@ -30,6 +38,7 @@ Crates that don't roll a Giant Coffee still roll the usual one-hit shield.
 | `Space`, `W` or `↑` | Jump — hold for height |
 | `Shift` | Sprint |
 | `P` | Pause |
+| `M` | Mute / unmute the music |
 | `Enter` | Start / restart |
 
 Keyboard only. Three lives, a 300-second SLA, and the level restarts on a death but keeps
@@ -58,6 +67,7 @@ accumulator; rendering happens once per animation frame, and the two are kept ap
 | `src/render.js` | background, tiles, hero, effects |
 | `src/sprites.js` | enemy, pickup and boss pixel art |
 | `src/audio.js` | WebAudio blips |
+| `src/music.js` | the generated chiptune score |
 | `src/powerup.js` | the Giant Coffee and the charge it grants |
 | `src/storage.js` | personal bests in localStorage |
 

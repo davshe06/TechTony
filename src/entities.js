@@ -13,6 +13,7 @@ const JUMP_HOLD = -0.18;
 const JUMP_HOLD_TICKS = 30;
 const COYOTE_TICKS = 6;
 const BUFFER_TICKS = 6;
+const HAZARD_KICK = -6.6;   // pop clear of a cabling run when the shield eats a hit
 
 export function makePlayer() {
   return {
@@ -117,26 +118,34 @@ export function stepPlayer(world, p, keys, fx, out) {
 
   if (p.invuln > 0) p.invuln--;
   if (p.power > 0) p.power--;
-  for (const h of world.hits(p, false)) if (h.t === 6) hurt(p, fx);
+  for (const h of world.hits(p, false)) if (h.t === 6) hurt(p, fx, 'hazard');
   if (p.y > VH + 60) { p.dead = 1; p.vy = 0; }
 }
 
 // One hit: a shield absorbs it and grants brief invulnerability, otherwise
 // the run ends and the death arc plays out in stepPlayer.
-export function hurt(p, fx, fromEnemy = false) {
+// source: 'enemy' (absorbed by a charge), 'hazard' (exposed cabling) or 'fall'.
+export function hurt(p, fx, source = 'fall') {
   if (p.invuln > 0 || p.dead) return;
-  if (fromEnemy && p.power > 0) {
+
+  if (source === 'enemy' && p.power > 0) {
     p.power = 0; p.invuln = 40;
     burst(fx, p.x + 5, p.y + 6, C.n300);
     sfx.discharge();
     return;
   }
+
   if (p.shield) {
     p.shield = 0; p.invuln = 80;
+    // A grounded player's body occupies the same row the cabling sits in, so
+    // absorbing the hit is not enough — without a hop clear, invulnerability
+    // just defers the death by 80 ticks. Launch them out of the run instead.
+    if (source === 'hazard') { p.vy = HAZARD_KICK; p.jumping = 0; }
     burst(fx, p.x + 5, p.y + 6, C.a300);
     sfx.guard();
     return;
   }
+
   p.dead = 1; p.vy = -6;
   sfx.death();
 }
@@ -190,7 +199,7 @@ export function stepEnemies(world, enemies, p, fx) {
       burst(fx, e.x + 6, e.y + 6, p.power > 0 ? C.n100 : C.a400);
       sfx.stomp();
     } else {
-      hurt(p, fx, true);
+      hurt(p, fx, 'enemy');
     }
   }
 }
@@ -280,7 +289,7 @@ export function stepBoss(B, p, shots, fx, out) {
       return true;
     }
   } else if (B.hit === 0) {
-    hurt(p, fx, true);
+    hurt(p, fx, 'enemy');
   }
   return false;
 }
@@ -290,7 +299,7 @@ export function stepShots(world, shots, p, fx) {
   return shots.filter(o => {
     o.x += o.vx; o.y += o.vy; o.life--;
     if (!p.dead && p.x < o.x + 5 && p.x + p.w > o.x && p.y < o.y + 5 && p.y + p.h > o.y) {
-      hurt(p, fx, true);
+      hurt(p, fx, 'enemy');
       return false;
     }
     return o.life > 0 && !SOLID(world.tileAt(o.x + 2, o.y + 2));

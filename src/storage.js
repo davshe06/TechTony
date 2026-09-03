@@ -34,6 +34,16 @@ export function recordRun({ won, seconds, coffee, bits }) {
   return b;
 }
 
+const MUTE_KEY = 'techtony.muted.v1';
+
+export function loadMuted() {
+  try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; }
+}
+
+export function saveMuted(v) {
+  try { localStorage.setItem(MUTE_KEY, v ? '1' : '0'); } catch { /* unavailable */ }
+}
+
 export function formatTime(s) {
   if (s === null) return '—';
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
