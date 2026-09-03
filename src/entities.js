@@ -18,7 +18,7 @@ export function makePlayer() {
   return {
     x: 3 * T, y: 8 * T, w: 11, h: 16,
     vx: 0, vy: 0, onGround: false, face: 1, anim: 0,
-    shield: 0, dead: 0, invuln: 0,
+    shield: 0, power: 0, dead: 0, invuln: 0,
     coyote: 0, buffer: 0, jumping: 0, jumpHeld: false
   };
 }
@@ -48,14 +48,14 @@ export function stepFx(fx) {
 
 // Head-bump onto a tile. Crates pop a coffee and convert to a spent crate;
 // 30% of the time they also hand out a one-hit shield.
-export function bumpTile(world, player, fx, h, out) {
+export function bumpTile(world, fx, h, out) {
   if (h.t === 3) {
     world.grid[h.r][h.c] = 4;
     fx.pops.push({ x: h.c * T + 4, y: h.r * T - 6, vy: -1.5, life: 38, kind: 'coffee' });
     burst(fx, h.c * T + 8, h.r * T + 2, C.a400);
     sfx.crate();
     out.coffee += 1;
-    if (Math.random() < .3) { player.shield = 1; sfx.shield(); }
+    out.crate = { c: h.c, r: h.r };   // the caller decides what the crate yields
   } else if (h.t === 2) {
     sfx.shelf();
     dust(fx, h.c * T + 8, h.r * T + T, 3);
@@ -109,21 +109,28 @@ export function stepPlayer(world, p, keys, fx, out) {
   world.moveX(p, p.vx);
   world.moveY(p, p.vy, {
     onLand: (o, dy) => { if (dy > 4) dust(fx, o.x + o.w / 2, o.y + o.h, 4); },
-    onHead: h => bumpTile(world, p, fx, h, out)
+    onHead: h => bumpTile(world, fx, h, out)
   });
 
   if (Math.abs(p.vx) > .2 && p.onGround) p.anim += Math.abs(p.vx) * .16;
   else p.anim = 0;
 
   if (p.invuln > 0) p.invuln--;
+  if (p.power > 0) p.power--;
   for (const h of world.hits(p, false)) if (h.t === 6) hurt(p, fx);
   if (p.y > VH + 60) { p.dead = 1; p.vy = 0; }
 }
 
 // One hit: a shield absorbs it and grants brief invulnerability, otherwise
 // the run ends and the death arc plays out in stepPlayer.
-export function hurt(p, fx) {
+export function hurt(p, fx, fromEnemy = false) {
   if (p.invuln > 0 || p.dead) return;
+  if (fromEnemy && p.power > 0) {
+    p.power = 0; p.invuln = 40;
+    burst(fx, p.x + 5, p.y + 6, C.n300);
+    sfx.discharge();
+    return;
+  }
   if (p.shield) {
     p.shield = 0; p.invuln = 80;
     burst(fx, p.x + 5, p.y + 6, C.a300);
@@ -175,14 +182,15 @@ export function stepEnemies(world, enemies, p, fx) {
     }
 
     if (p.dead || !overlaps(p, e, 2)) continue;
-    if (p.vy > 1.2 && p.y + p.h - p.vy <= e.y + 7) {
+    const stomped = p.vy > 1.2 && p.y + p.h - p.vy <= e.y + 7;
+    if (stomped || p.power > 0) {
       e.alive = false;
-      p.vy = -5.6;
+      if (stomped) p.vy = -5.6;               // ploughing through does not bounce
       fx.pops.push({ x: e.x, y: e.y, vy: -1, life: 30, kind: 'fixed' });
-      burst(fx, e.x + 6, e.y + 6, C.a400);
+      burst(fx, e.x + 6, e.y + 6, p.power > 0 ? C.n100 : C.a400);
       sfx.stomp();
     } else {
-      hurt(p, fx);
+      hurt(p, fx, true);
     }
   }
 }
@@ -272,7 +280,7 @@ export function stepBoss(B, p, shots, fx, out) {
       return true;
     }
   } else if (B.hit === 0) {
-    hurt(p, fx);
+    hurt(p, fx, true);
   }
   return false;
 }
@@ -282,7 +290,7 @@ export function stepShots(world, shots, p, fx) {
   return shots.filter(o => {
     o.x += o.vx; o.y += o.vy; o.life--;
     if (!p.dead && p.x < o.x + 5 && p.x + p.w > o.x && p.y < o.y + 5 && p.y + p.h > o.y) {
-      hurt(p, fx);
+      hurt(p, fx, true);
       return false;
     }
     return o.life > 0 && !SOLID(world.tileAt(o.x + 2, o.y + 2));

@@ -45,5 +45,9 @@ export const sfx = {
   bossIn:  () => { beep(180, .5, 'sawtooth', .05); beepLater(260, 140, .6, 'sawtooth', .05); },
   bossFire:() => beep(300, .12, 'square', .035),
   bossHit: () => beep(620, .12, 'square', .05),
-  bossDown:() => { beep(880, .16, 'triangle'); beepLater(160, 1180, .3, 'triangle'); }
+  bossDown:() => { beep(880, .16, 'triangle'); beepLater(160, 1180, .3, 'triangle'); },
+  giant:   () => { beep(440, .1, 'triangle', .05); beepLater(100, 660, .14, 'triangle', .045); },
+  charge:  () => { beep(660, .1, 'triangle', .06); beepLater(90, 880, .1, 'triangle', .055);
+                   beepLater(180, 1320, .26, 'triangle', .05); },
+  discharge:() => { beep(420, .18, 'square', .04); beepLater(120, 260, .24, 'square', .035); }
 };

@@ -8,6 +8,20 @@ The queue went feral in time for the anniversary. Phishing mail, blue screens an
 chatbot are loose on the floor. Stomp them, bank the coffee, decommission Promptbot 9000 and
 reach the mainframe before the SLA expires.
 
+## The Giant Coffee
+
+Head-butt a supply crate and roughly one in four releases a **Giant Coffee**. It pops out,
+lands and walks off at 0.8 — turning at walls but happily strolling off a ledge, so catch it
+before it drops down a gap.
+
+Catch it and Tony is **fully caffeinated for 30 seconds**: he glows, and any enemy he touches
+is destroyed from any angle, no stomp required. The aura flickers over the last three seconds
+as a warning.
+
+It does not make him immortal. Exposed cabling and open gaps still end a run, and Promptbot
+9000 or one of its prompt bolts will burn the charge off early instead of costing a life.
+Crates that don't roll a Giant Coffee still roll the usual one-hit shield.
+
 ## Controls
 
 | Key | Action |
@@ -44,6 +58,7 @@ accumulator; rendering happens once per animation frame, and the two are kept ap
 | `src/render.js` | background, tiles, hero, effects |
 | `src/sprites.js` | enemy, pickup and boss pixel art |
 | `src/audio.js` | WebAudio blips |
+| `src/powerup.js` | the Giant Coffee and the charge it grants |
 | `src/storage.js` | personal bests in localStorage |
 
 The canvas is 960×576 backing a 320×192 logical frame at integer scale, with smoothing off.

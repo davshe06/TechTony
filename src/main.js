@@ -7,6 +7,8 @@ import { makePlayer, makeFx, stepPlayer, stepFx, makeEnemies, stepEnemies,
          makePickups, stepPickups, makeBoss, stepBoss, stepShots,
          openGate } from './entities.js';
 import { drawEnemy, drawCoffee, drawBit, drawPops, drawBoss, drawShot } from './sprites.js';
+import { GIANT_CHANCE, POWER_TICKS, makeGiant, stepGiants,
+         auraVisible, drawAura, drawGiant } from './powerup.js';
 import { sfx, context as audioContext } from './audio.js';
 import { loadBests, recordRun, bestsLine } from './storage.js';
 
@@ -35,7 +37,7 @@ const game = {
   state: { coffee: 0, bits: 0, lives: START_LIVES, time: START_TIME, pct: 0 },
   world: null, player: null, fx: null, leds: null,
   enemies: [], coins: [], bits: [],
-  boss: null, bossDown: false, shots: [],
+  boss: null, bossDown: false, shots: [], giants: [],
   timeF: START_TIME * 60, goalX: SPEC.goal * T
 };
 
@@ -51,6 +53,7 @@ function loadLevel() {
   game.boss = null;
   game.bossDown = false;
   game.shots = [];
+  game.giants = [];
   game.timeF = START_TIME * 60;
   game.world.updateCamera(game.player);
 }
@@ -103,13 +106,28 @@ function setScreen(next) {
 
 function step() {
   const { world, player, fx, state } = game;
-  const out = { coffee: 0, bits: 0, died: false };
+  const out = { coffee: 0, bits: 0, died: false, crate: null, power: false };
 
   stepPlayer(world, player, keys, fx, out);
+
+  // A bumped crate yields a Giant Coffee a quarter of the time; otherwise it
+  // falls back to the original shield roll.
+  if (out.crate) {
+    if (Math.random() < GIANT_CHANCE) {
+      game.giants.push(makeGiant(out.crate.c, out.crate.r));
+      sfx.giant();
+    } else if (Math.random() < .3) {
+      player.shield = 1;
+      sfx.shield();
+    }
+  }
+
   if (!player.dead) {
     stepEnemies(world, game.enemies, player, fx);
     stepPickups(player, game.coins, game.bits, fx, out);
   }
+  game.giants = stepGiants(world, game.giants, player, fx, out);
+  if (out.power) player.power = POWER_TICKS;
 
   // Promptbot wakes as the player closes on tile 208 and only ever spawns once.
   if (!game.boss && !game.bossDown && player.x > SPEC.bossAt * T - 60) {
@@ -160,11 +178,13 @@ function draw() {
     for (const c of game.coins) if (!c.got && onScreen(c.x)) drawCoffee(renderer, Math.round(c.x - cam), Math.round(c.y));
     for (const b of game.bits) if (!b.got && onScreen(b.x)) drawBit(renderer, b, cam);
     for (const e of game.enemies) if (e.alive && onScreen(e.x)) drawEnemy(renderer, e, cam);
+    for (const g of game.giants) if (onScreen(g.x)) drawGiant(renderer, g, cam);
     if (game.boss) drawBoss(renderer, game.boss, cam);
     for (const o of game.shots) drawShot(renderer, o, cam);
 
     renderer.particles(game.fx, cam);
     drawPops(renderer, game.fx.pops, cam);
+    if (auraVisible(game.player.power, renderer.tick)) drawAura(renderer, game.player, cam);
     renderer.hero(game.player, cam);
   }
   renderer.post();
