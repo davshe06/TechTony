@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tech Tony — Sysadmin Quest</title>
+<meta name="description" content="A browser platformer for Anthony's 20th work anniversary. Stomp the ticket queue, bank the coffee, reach the mainframe.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Tech Tony — Sysadmin Quest">
+<meta property="og:description" content="Twenty years of service · zero unplanned downtime. Stomp the ticket queue, bank the coffee, reach the mainframe.">
+<meta property="og:image" content="./assets/share.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<main class="wrap">
+
+  <header class="topbar">
+    <div class="titleblock">
+      <div class="kicker">Twenty years of keeping it running</div>
+      <h1 class="gametitle">Tech Tony — Sysadmin Quest</h1>
+    </div>
+    <div class="hud">
+      <div class="stat"><span class="stat-label">Coffee</span><span class="stat-value" id="hud-coffee">0</span></div>
+      <div class="stat"><span class="stat-label">Bitcoin</span><span class="stat-value accent" id="hud-bits">0</span></div>
+      <div class="stat"><span class="stat-label">Uptime</span><span class="stat-value dots" id="hud-lives">●●●</span></div>
+      <div class="stat"><span class="stat-label">SLA</span><span class="stat-value" id="hud-time">300</span></div>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="game" width="960" height="576"
+            aria-label="Tech Tony: Sysadmin Quest. A side-scrolling platformer played with the keyboard."
+            role="img"></canvas>
+
+    <p class="sr-only">
+      Controls: A and D or the left and right arrow keys move. Space, W or the up arrow jumps.
+      Hold Shift to sprint. P pauses. Enter starts or restarts the game.
+    </p>
+
+    <section class="overlay title-screen" id="screen-title">
+      <div class="portrait"><img src="./assets/tony.jpg" alt="Anthony"></div>
+      <div class="title-copy">
+        <div class="kicker accent">Twenty years of service · zero unplanned downtime</div>
+        <h2>Tech Tony vs the ticket queue</h2>
+        <p>The queue went feral in time for the anniversary. Phishing mail, blue screens and a rogue
+           AI chatbot are loose on the data centre floor. Stomp them, bank the coffee, reach the
+           mainframe before the SLA expires.</p>
+        <ul class="keycaps">
+          <li>A / D — move</li><li>Space — jump</li><li>Shift — sprint</li><li>P — pause</li>
+        </ul>
+        <p class="bests" id="bests" hidden></p>
+        <button class="btn" id="btn-start" type="button">Clock in</button>
+      </div>
+    </section>
+
+    <section class="overlay center-screen" id="screen-over" hidden>
+      <div class="kicker accent">Sev 1 declared</div>
+      <h2>Total outage</h2>
+      <p class="note" id="over-note"></p>
+      <button class="btn" id="btn-restart" type="button">Reboot</button>
+    </section>
+
+    <section class="overlay center-screen win-screen" id="screen-win" hidden>
+      <div class="kicker accent-300">All systems green</div>
+      <h2>Mainframe reached</h2>
+      <p class="note" id="win-note"></p>
+      <p class="sign">Happy 20th, Anthony. From everyone who never had to open a ticket.</p>
+      <button class="btn" id="btn-again" type="button">Run it back</button>
+    </section>
+
+    <section class="overlay pause-screen" id="screen-pause" hidden>
+      <div class="blink">Paused</div>
+    </section>
+  </div>
+
+  <footer class="statusbar">
+    <span id="status-level">Data centre — floor 3</span>
+    <span id="status-progress">Route to mainframe — 0%</span>
+  </footer>
+
+</main>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
