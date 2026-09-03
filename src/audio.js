@@ -35,5 +35,11 @@ export const sfx = {
   shelf:   () => beep(150, .05, 'square', .03),
   crate:   () => beep(1180, .07),
   shield:  () => beep(700, .18, 'triangle'),
-  start:   () => beep(660, .08, 'triangle')
+  start:   () => beep(660, .08, 'triangle'),
+  stomp:   () => beep(760, .07, 'square', .045),
+  coffee:  () => beep(1320, .06, 'square', .03),
+  bitcoin: () => { beep(980, .09, 'triangle', .05); beepLater(90, 1460, .12, 'triangle', .045); },
+  guard:   () => beep(240, .2, 'sawtooth', .04),
+  death:   () => beep(300, .5, 'sawtooth', .05),
+  win:     () => { beep(880, .12, 'triangle'); beepLater(130, 1320, .22, 'triangle'); }
 };

@@ -1,7 +1,7 @@
 // Player simulation and the particle/popup effect pools.
 // Enemies, boss and pickups arrive in later passes.
 
-import { T, VH, C } from './level.js';
+import { T, VH, C, SOLID } from './level.js';
 import { sfx } from './audio.js';
 
 export const GRAVITY = 0.44;
@@ -116,5 +116,102 @@ export function stepPlayer(world, p, keys, fx, out) {
   else p.anim = 0;
 
   if (p.invuln > 0) p.invuln--;
+  for (const h of world.hits(p, false)) if (h.t === 6) hurt(p, fx);
   if (p.y > VH + 60) { p.dead = 1; p.vy = 0; }
+}
+
+// One hit: a shield absorbs it and grants brief invulnerability, otherwise
+// the run ends and the death arc plays out in stepPlayer.
+export function hurt(p, fx) {
+  if (p.invuln > 0 || p.dead) return;
+  if (p.shield) {
+    p.shield = 0; p.invuln = 80;
+    burst(fx, p.x + 5, p.y + 6, C.a300);
+    sfx.guard();
+    return;
+  }
+  p.dead = 1; p.vy = -6;
+  sfx.death();
+}
+
+// ---- enemies ----
+
+export function makeEnemies(spec) {
+  return spec.enemies.map(([x, kind]) => ({
+    x: x * T, y: kind === 'ai' ? 6 * T : 9 * T,
+    w: kind === 'ai' ? 15 : 13, h: kind === 'ai' ? 13 : 14,
+    vx: kind === 'bsod' ? -.8 : -.45, vy: 0,
+    kind, alive: true, t: Math.random() * 90, home: 6 * T
+  }));
+}
+
+function overlaps(p, e, inset) {
+  return p.x < e.x + e.w - inset && p.x + p.w - inset > e.x
+      && p.y < e.y + e.h && p.y + p.h > e.y;
+}
+
+export function stepEnemies(world, enemies, p, fx) {
+  for (const e of enemies) {
+    // Enemies far off-screen are frozen, so the level doesn't simulate itself
+    // to pieces before the player ever sees it.
+    if (!e.alive || Math.abs(e.x - p.x) > 340) continue;
+    e.t++;
+
+    if (e.kind === 'ai') {
+      e.y = e.home + Math.sin(e.t * .045) * 22;   // ignores gravity, hovers
+      const dir = p.x > e.x ? 1 : -1;
+      e.vx += dir * .012;
+      e.vx = Math.max(-.9, Math.min(.9, e.vx));
+      e.x += e.vx;
+    } else {
+      e.vy = Math.min(e.vy + GRAVITY, 9);
+      e.hitWall = false;
+      world.moveX(e, e.vx);
+      world.moveY(e, e.vy);
+      // Turn at walls, and at ledges: probe the floor just past the leading edge.
+      const ahead = e.x + (e.vx > 0 ? e.w + 2 : -2);
+      if (e.hitWall || (world.grounded(e) && !SOLID(world.tileAt(ahead, e.y + e.h + 4)))) e.vx *= -1;
+      if (e.y > VH + 40) { e.alive = false; continue; }
+    }
+
+    if (p.dead || !overlaps(p, e, 2)) continue;
+    if (p.vy > 1.2 && p.y + p.h - p.vy <= e.y + 7) {
+      e.alive = false;
+      p.vy = -5.6;
+      fx.pops.push({ x: e.x, y: e.y, vy: -1, life: 30, kind: 'fixed' });
+      burst(fx, e.x + 6, e.y + 6, C.a400);
+      sfx.stomp();
+    } else {
+      hurt(p, fx);
+    }
+  }
+}
+
+// ---- pickups ----
+
+export function makePickups(spec) {
+  const coins = [];
+  spec.coins.forEach(([x, y, n]) => {
+    for (let k = 0; k < n; k++) coins.push({ x: (x + k) * T + 4, y: y * T + 4, got: false });
+  });
+  const bits = spec.bits.map(([x, y]) => ({ x: x * T + 3, y: y * T + 3, got: false }));
+  return { coins, bits };
+}
+
+export function stepPickups(p, coins, bits, fx, out) {
+  for (const c of coins) {
+    if (c.got || !(p.x < c.x + 10 && p.x + p.w > c.x && p.y < c.y + 12 && p.y + p.h > c.y)) continue;
+    c.got = true;
+    out.coffee += 1;
+    fx.pops.push({ x: c.x, y: c.y, vy: -1.4, life: 26, kind: 'plus' });
+    sfx.coffee();
+  }
+  for (const b of bits) {
+    if (b.got || !(p.x < b.x + 12 && p.x + p.w > b.x && p.y < b.y + 12 && p.y + p.h > b.y)) continue;
+    b.got = true;
+    out.bits += 1;
+    burst(fx, b.x + 5, b.y + 5, C.a300);
+    fx.pops.push({ x: b.x - 4, y: b.y, vy: -1.2, life: 34, kind: 'btc' });
+    sfx.bitcoin();
+  }
 }

@@ -1,9 +1,11 @@
 // Bootstrap, game loop and the screen state machine.
 
-import { T, SPEC } from './level.js';
+import { T, VW, SPEC } from './level.js';
 import { World, createLoop } from './engine.js';
 import { Renderer, makeLeds } from './render.js';
-import { makePlayer, makeFx, stepPlayer, stepFx } from './entities.js';
+import { makePlayer, makeFx, stepPlayer, stepFx, makeEnemies, stepEnemies,
+         makePickups, stepPickups } from './entities.js';
+import { drawEnemy, drawCoffee, drawBit, drawPops } from './sprites.js';
 import { sfx, context as audioContext } from './audio.js';
 
 const START_LIVES = 3;
@@ -29,6 +31,7 @@ const game = {
   screen: 'title',
   state: { coffee: 0, bits: 0, lives: START_LIVES, time: START_TIME, pct: 0 },
   world: null, player: null, fx: null, leds: null,
+  enemies: [], coins: [], bits: [],
   timeF: START_TIME * 60, goalX: SPEC.goal * T
 };
 
@@ -37,6 +40,10 @@ function loadLevel() {
   game.player = makePlayer();
   game.fx = makeFx();
   game.leds = makeLeds(SPEC);
+  game.enemies = makeEnemies(SPEC);
+  const pickups = makePickups(SPEC);
+  game.coins = pickups.coins;
+  game.bits = pickups.bits;
   game.timeF = START_TIME * 60;
   game.world.updateCamera(game.player);
 }
@@ -75,10 +82,15 @@ function setScreen(next) {
 
 function step() {
   const { world, player, fx, state } = game;
-  const out = { coffee: 0, died: false };
+  const out = { coffee: 0, bits: 0, died: false };
 
   stepPlayer(world, player, keys, fx, out);
+  if (!player.dead) {
+    stepEnemies(world, game.enemies, player, fx);
+    stepPickups(player, game.coins, game.bits, fx, out);
+  }
   state.coffee += out.coffee;
+  state.bits += out.bits;
 
   if (out.died) {
     const lives = state.lives - 1;
@@ -96,6 +108,8 @@ function step() {
 
   state.pct = Math.min(100, Math.round(player.x / game.goalX * 100));
   world.updateCamera(player);
+
+  if (player.x + player.w > game.goalX + 4) { sfx.win(); setScreen('win'); }
 }
 
 function draw() {
@@ -106,7 +120,15 @@ function draw() {
     renderer.background(cam, game.leds);
     renderer.tiles(game.world);
     renderer.goal(game.goalX, cam);
+
+    // Cull in screen space: anything outside the 320px viewport costs nothing.
+    const onScreen = wx => wx - cam > -30 && wx - cam < VW + 30;
+    for (const c of game.coins) if (!c.got && onScreen(c.x)) drawCoffee(renderer, Math.round(c.x - cam), Math.round(c.y));
+    for (const b of game.bits) if (!b.got && onScreen(b.x)) drawBit(renderer, b, cam);
+    for (const e of game.enemies) if (e.alive && onScreen(e.x)) drawEnemy(renderer, e, cam);
+
     renderer.particles(game.fx, cam);
+    drawPops(renderer, game.fx.pops, cam);
     renderer.hero(game.player, cam);
   }
   renderer.post();
