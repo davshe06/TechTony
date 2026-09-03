@@ -1,29 +1,31 @@
-// The Giant Coffee and the charge it grants.
+// Crate drops: the Giant Coffee and the spare-capacity extra life.
 //
-// A quarter of supply crates release one instead of an ordinary cup. It pops
-// out of the crate, lands, then walks — turning at walls but NOT at ledges, so
-// a slow player can watch it drop down a gap and lose it.
+// A quarter of supply crates release each. Both pop out of the crate, land,
+// then walk — turning at walls but NOT at ledges, so a slow player can watch
+// one drop down a gap and lose it.
 
 import { T, VH, C } from './level.js';
 import { GRAVITY, burst } from './entities.js';
 import { sfx } from './audio.js';
 
-export const GIANT_CHANCE = 0.25;
+export const GIANT_CHANCE = 0.25;     // and the same again for an extra life
+export const LIFE_CHANCE = 0.25;
 export const POWER_TICKS = 30 * 60;   // 30 seconds on the fixed 60 Hz clock
 export const POWER_WARN = 3 * 60;     // aura flickers over the last 3 seconds
 
 const WALK = 0.8;
 const POP = -2.6;
 
-export function makeGiant(col, row) {
+export function makeDrop(kind, col, row) {
+  const w = kind === 'life' ? 13 : 14;
   return {
-    x: col * T + 1, y: row * T - 14, w: 14, h: 12,
+    kind, x: col * T + 1, y: row * T - 14, w, h: 12,
     vx: WALK, vy: POP, onGround: false, hitWall: false, t: 0
   };
 }
 
-// Returns the surviving coffees; sets out.power when one is caught.
-export function stepGiants(world, giants, p, fx, out) {
+// Returns the surviving drops; sets out.power or out.life when one is caught.
+export function stepDrops(world, giants, p, fx, out) {
   return giants.filter(g => {
     g.t++;
     g.vy = Math.min(g.vy + GRAVITY, 9);
@@ -39,11 +41,13 @@ export function stepGiants(world, giants, p, fx, out) {
     if (g.y > VH + 40) return false;                 // lost down a gap
 
     if (!p.dead && p.x < g.x + g.w && p.x + p.w > g.x && p.y < g.y + g.h && p.y + p.h > g.y) {
-      out.power = true;
+      const life = g.kind === 'life';
+      out[life ? 'life' : 'power'] = true;
       burst(fx, g.x + 7, g.y + 6, C.a300);
       burst(fx, g.x + 7, g.y + 6, C.n100);
-      fx.pops.push({ x: g.x - 10, y: g.y, vy: -1.1, life: 60, kind: 'charged' });
-      sfx.charge();
+      fx.pops.push({ x: g.x - 10, y: g.y, vy: -1.1, life: 60,
+                     kind: life ? 'uptime' : 'charged' });
+      if (life) sfx.life(); else sfx.charge();
       return false;
     }
     return true;
@@ -79,7 +83,42 @@ export function drawAura(r, p, cam) {
   }
 }
 
-export function drawGiant(r, g, cam) {
+export function drawDrop(r, g, cam) {
+  if (g.kind === 'life') drawLife(r, g, cam);
+  else drawGiant(r, g, cam);
+}
+
+// A hot-spare drive caddy: the same accent dot the HUD uses for uptime.
+function drawLife(r, g, cam) {
+  const ctx = r.ctx;
+  const x = Math.round(g.x - cam);
+  const y = Math.round(g.y + Math.sin(g.t * .12) * .8);
+  const pulse = (Math.sin(r.tick * .16) + 1) / 2;
+
+  const glow = ctx.createRadialGradient(x + 6, y + 6, 2, x + 6, y + 6, 17 + pulse * 4);
+  glow.addColorStop(0, 'rgba(210,206,253,.34)');
+  glow.addColorStop(1, 'rgba(210,206,253,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(x - 12, y - 12, g.w + 24, g.h + 24);
+
+  ctx.fillStyle = 'rgba(18,20,31,.35)';
+  ctx.fillRect(x, y + g.h - 1, g.w, 2);
+
+  r.px(x, y, 13, 12, C.n700);          // caddy shell
+  r.px(x + 1, y + 1, 11, 10, C.surf);
+  r.px(x + 1, y + 1, 11, 1, C.n500);
+  r.px(x + 2, y + 9, 6, 1, C.n600);    // label strip
+  r.px(x + 2, y + 3, 3, 1, C.n600);
+
+  const dot = pulse > .45 ? C.a300 : C.a600;   // the uptime LED, breathing
+  r.px(x + 8, y + 3, 3, 3, dot);
+  r.px(x + 9, y + 2, 1, 1, dot);
+  r.px(x + 9, y + 6, 1, 1, dot);
+  r.px(x + 4, y + 5, 5, 1, C.a400);    // a "+" over the caddy face
+  r.px(x + 6, y + 3, 1, 5, C.a400);
+}
+
+function drawGiant(r, g, cam) {
   const ctx = r.ctx;
   const x = Math.round(g.x - cam);
   const y = Math.round(g.y + Math.sin(g.t * .12) * .8);

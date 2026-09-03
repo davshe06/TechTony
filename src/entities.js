@@ -19,7 +19,7 @@ export function makePlayer() {
   return {
     x: 3 * T, y: 8 * T, w: 11, h: 16,
     vx: 0, vy: 0, onGround: false, face: 1, anim: 0,
-    shield: 0, power: 0, dead: 0, invuln: 0,
+    shield: 0, power: 0, dead: 0, invuln: 0, deathX: 3 * T,
     coyote: 0, buffer: 0, jumping: 0, jumpHeld: false
   };
 }
@@ -119,7 +119,7 @@ export function stepPlayer(world, p, keys, fx, out) {
   if (p.invuln > 0) p.invuln--;
   if (p.power > 0) p.power--;
   for (const h of world.hits(p, false)) if (h.t === 6) hurt(p, fx, 'hazard');
-  if (p.y > VH + 60) { p.dead = 1; p.vy = 0; }
+  if (p.y > VH + 60) { p.dead = 1; p.vy = 0; p.deathX = p.x; }
 }
 
 // One hit: a shield absorbs it and grants brief invulnerability, otherwise
@@ -146,7 +146,7 @@ export function hurt(p, fx, source = 'fall') {
     return;
   }
 
-  p.dead = 1; p.vy = -6;
+  p.dead = 1; p.vy = -6; p.deathX = p.x;
   sfx.death();
 }
 

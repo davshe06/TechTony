@@ -125,9 +125,9 @@ export function drawShot(r, o, cam) {
 
 const POP_TEXT = {
   btc: '+1 BTC', plus: '+1', boss: 'DECOMMISSIONED — +5 BTC', fixed: 'RESOLVED',
-  charged: 'FULLY CAFFEINATED'
+  charged: 'FULLY CAFFEINATED', uptime: '+1 UPTIME'
 };
-const POP_COLOR = { btc: C.a300, plus: C.n200, charged: C.n100 };
+const POP_COLOR = { btc: C.a300, plus: C.n200, charged: C.n100, uptime: C.a300 };
 
 export function drawPops(r, pops, cam) {
   for (const o of pops) {

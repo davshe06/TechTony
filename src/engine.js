@@ -68,6 +68,41 @@ export class World {
     }
   }
 
+  // A column the player can stand in: a solid tile whose neighbour above is
+  // genuinely empty — tile 6 is cabling, so "not solid" is not the same as
+  // "safe". Scans from the floor upward so a respawn prefers open ground over
+  // a narrow shelf higher in the same column.
+  standableAt(col, enemies) {
+    for (let r = ROWS - 1; r >= 1; r--) {
+      if (!SOLID(this.grid[r][col])) continue;
+      if (this.grid[r - 1][col] !== 0) continue;
+      if (r - 2 >= 0 && SOLID(this.grid[r - 2][col])) continue;   // no headroom
+      const x = col * T + 2, y = (r - 1) * T;
+      const occupied = enemies && enemies.some(e =>
+        e.alive && Math.abs(e.x - x) < 22 && Math.abs(e.y - y) < 22);
+      if (occupied) continue;
+      return { x, y };
+    }
+    return null;
+  }
+
+  // Nearest standable column to fromX, expanding outward and preferring the
+  // side already travelled, so a pit death puts the player back on the ledge
+  // they fell from rather than across the gap.
+  safeSpotNear(fromX, enemies) {
+    const w = this.spec.w;
+    const start = Math.max(1, Math.min(w - 2, Math.floor(fromX / T)));
+    for (let d = 0; d < w; d++) {
+      const cols = d === 0 ? [start] : [start - d, start + d];
+      for (const col of cols) {
+        if (col < 1 || col > w - 2) continue;
+        const spot = this.standableAt(col, enemies);
+        if (spot) return spot;
+      }
+    }
+    return { x: 3 * T, y: 8 * T };      // level entrance, if all else fails
+  }
+
   updateCamera(p) {
     this.cam = Math.max(0, Math.min(p.x - 130, this.spec.w * T - VW));
   }

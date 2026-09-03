@@ -7,14 +7,16 @@ import { makePlayer, makeFx, stepPlayer, stepFx, makeEnemies, stepEnemies,
          makePickups, stepPickups, makeBoss, stepBoss, stepShots,
          openGate } from './entities.js';
 import { drawEnemy, drawCoffee, drawBit, drawPops, drawBoss, drawShot } from './sprites.js';
-import { GIANT_CHANCE, POWER_TICKS, makeGiant, stepGiants,
-         auraVisible, drawAura, drawGiant } from './powerup.js';
+import { GIANT_CHANCE, LIFE_CHANCE, POWER_TICKS, makeDrop, stepDrops,
+         auraVisible, drawAura, drawDrop } from './powerup.js';
 import { sfx, context as audioContext } from './audio.js';
 import { loadBests, recordRun, bestsLine, loadMuted, saveMuted } from './storage.js';
 import * as music from './music.js';
 
 const START_LIVES = 3;
+const MAX_LIVES = 5;              // the HUD shows lives as dots; keep it legible
 const START_TIME = 300;
+const RESPAWN_INVULN = 3 * 60;    // 3 seconds of grace on a fresh life
 
 const el = id => document.getElementById(id);
 const dom = {
@@ -27,7 +29,8 @@ const dom = {
     win: el('screen-win'), pause: el('screen-pause')
   },
   overNote: el('over-note'), winNote: el('win-note'),
-  stage: el('stage'), bests: el('bests'), mute: el('btn-mute')
+  stage: el('stage'), bests: el('bests'),
+  mute: el('btn-mute'), pause: el('btn-pause')
 };
 
 const renderer = new Renderer(dom.canvas);
@@ -38,7 +41,7 @@ const game = {
   state: { coffee: 0, bits: 0, lives: START_LIVES, time: START_TIME, pct: 0 },
   world: null, player: null, fx: null, leds: null,
   enemies: [], coins: [], bits: [],
-  boss: null, bossDown: false, shots: [], giants: [],
+  boss: null, bossDown: false, shots: [], drops: [],
   timeF: START_TIME * 60, goalX: SPEC.goal * T
 };
 
@@ -54,7 +57,7 @@ function loadLevel() {
   game.boss = null;
   game.bossDown = false;
   game.shots = [];
-  game.giants = [];
+  game.drops = [];
   game.timeF = START_TIME * 60;
   game.world.updateCamera(game.player);
 }
@@ -68,13 +71,27 @@ function start() {
   sfx.start();
 }
 
-// Restart after a death: the level resets but coffee and BTC totals carry over.
+// A fresh life resumes where the run ended rather than rewinding the level:
+// the world keeps its state (cleared enemies, spent crates, boss damage) and
+// only the player is rebuilt, at the nearest standable column to the death.
 function respawn() {
-  const { coffee, bits } = game.state;
-  loadLevel();
-  game.state.coffee = coffee;
-  game.state.bits = bits;
-  game.state.time = START_TIME;
+  const { world, player, state } = game;
+  const spot = world.safeSpotNear(player.deathX, game.enemies);
+
+  const p = makePlayer();
+  p.x = spot.x;
+  p.y = spot.y;
+  p.invuln = RESPAWN_INVULN;
+  p.deathX = spot.x;
+  game.player = p;
+
+  game.shots = [];                 // don't respawn into a bolt already in flight
+  game.drops = [];
+  game.fx = makeFx();
+  game.timeF = START_TIME * 60;
+  state.time = START_TIME;
+  world.updateCamera(p);
+  sfx.respawn();
 }
 
 function showBests(b) {
@@ -86,6 +103,8 @@ function showBests(b) {
 function setScreen(next) {
   game.screen = next;
   for (const [name, node] of Object.entries(dom.screens)) node.hidden = name !== next;
+  dom.pause.textContent = next === 'pause' ? 'Resume' : 'Pause';
+  dom.pause.disabled = next !== 'play' && next !== 'pause';
   if (next === 'pause') music.suspend();
   else if (next === 'play') music.resume();
   else music.stop();
@@ -111,15 +130,19 @@ function setScreen(next) {
 
 function step() {
   const { world, player, fx, state } = game;
-  const out = { coffee: 0, bits: 0, died: false, crate: null, power: false };
+  const out = { coffee: 0, bits: 0, died: false, crate: null, power: false, life: false };
 
   stepPlayer(world, player, keys, fx, out);
 
-  // A bumped crate yields a Giant Coffee a quarter of the time; otherwise it
-  // falls back to the original shield roll.
+  // One roll across three outcomes, so the two drop chances stay exactly a
+  // quarter each rather than compounding.
   if (out.crate) {
-    if (Math.random() < GIANT_CHANCE) {
-      game.giants.push(makeGiant(out.crate.c, out.crate.r));
+    const roll = Math.random();
+    if (roll < GIANT_CHANCE) {
+      game.drops.push(makeDrop('giant', out.crate.c, out.crate.r));
+      sfx.giant();
+    } else if (roll < GIANT_CHANCE + LIFE_CHANCE) {
+      game.drops.push(makeDrop('life', out.crate.c, out.crate.r));
       sfx.giant();
     } else if (Math.random() < .3) {
       player.shield = 1;
@@ -131,8 +154,9 @@ function step() {
     stepEnemies(world, game.enemies, player, fx);
     stepPickups(player, game.coins, game.bits, fx, out);
   }
-  game.giants = stepGiants(world, game.giants, player, fx, out);
+  game.drops = stepDrops(world, game.drops, player, fx, out);
   if (out.power) player.power = POWER_TICKS;
+  if (out.life) state.lives = Math.min(MAX_LIVES, state.lives + 1);
 
   // Promptbot wakes as the player closes on tile 208 and only ever spawns once.
   if (!game.boss && !game.bossDown && player.x > SPEC.bossAt * T - 60) {
@@ -185,7 +209,7 @@ function draw() {
     for (const c of game.coins) if (!c.got && onScreen(c.x)) drawCoffee(renderer, Math.round(c.x - cam), Math.round(c.y));
     for (const b of game.bits) if (!b.got && onScreen(b.x)) drawBit(renderer, b, cam);
     for (const e of game.enemies) if (e.alive && onScreen(e.x)) drawEnemy(renderer, e, cam);
-    for (const g of game.giants) if (onScreen(g.x)) drawGiant(renderer, g, cam);
+    for (const g of game.drops) if (onScreen(g.x)) drawDrop(renderer, g, cam);
     if (game.boss) drawBoss(renderer, game.boss, cam);
     for (const o of game.shots) drawShot(renderer, o, cam);
 
@@ -217,10 +241,7 @@ window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if ([' ', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(k)) e.preventDefault();
   keys[k] = true;
-  if (k === 'p' && (game.screen === 'play' || game.screen === 'pause')) {
-    setScreen(game.screen === 'play' ? 'pause' : 'play');
-    loop.resync();
-  }
+  if (k === 'p') togglePause();
   if (k === 'm') toggleMute();
   if (e.key === 'Enter' && game.screen !== 'play') start();
 });
@@ -247,6 +268,12 @@ function fitStage() {
 window.addEventListener('resize', fitStage);
 fitStage();
 
+function togglePause() {
+  if (game.screen !== 'play' && game.screen !== 'pause') return;
+  setScreen(game.screen === 'play' ? 'pause' : 'play');
+  loop.resync();
+}
+
 function toggleMute() {
   const next = !music.isMuted();
   music.setMuted(next);
@@ -256,12 +283,17 @@ function toggleMute() {
 }
 
 for (const id of ['btn-start', 'btn-restart', 'btn-again']) el(id).addEventListener('click', start);
-dom.mute.addEventListener('click', toggleMute);
+// Buttons keep focus after a click, which would make Space re-trigger them
+// instead of jumping. Hand focus back to the page.
+for (const [node, fn] of [[dom.mute, toggleMute], [dom.pause, togglePause]]) {
+  node.addEventListener('click', () => { fn(); node.blur(); });
+}
 
 // ---- go ----
 
 const loop = createLoop(() => { if (game.screen === 'play') step(); }, draw);
 dom.level.textContent = SPEC.name;
+dom.pause.disabled = true;
 music.setMuted(loadMuted());
 dom.mute.textContent = music.isMuted() ? 'Music off' : 'Music on';
 dom.mute.setAttribute('aria-pressed', String(music.isMuted()));

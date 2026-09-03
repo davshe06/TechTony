@@ -8,9 +8,22 @@ The queue went feral in time for the anniversary. Phishing mail, blue screens an
 chatbot are loose on the floor. Stomp them, bank the coffee, decommission Promptbot 9000 and
 reach the mainframe before the SLA expires.
 
-## The Giant Coffee
+## Dying
 
-Head-butt a supply crate and roughly one in four releases a **Giant Coffee**. It pops out,
+A new life resumes at the nearest standable ground to where you fell, with three seconds of
+invulnerability — not back at the start. The floor keeps its state too: enemies you cleared
+stay cleared, crates you opened stay open, and damage dealt to the boss sticks. Coffee and
+bitcoin totals carry over as before. You get three lives, and can hold up to five.
+
+## Crate drops
+
+Head-butt a supply crate and one roll decides what comes out: a quarter of the time a
+**Giant Coffee**, a quarter of the time a **spare-capacity drive** worth an extra life, and
+otherwise the old one-hit shield at 30% of what's left. Both drops walk, so both can be lost.
+
+### The Giant Coffee
+
+Roughly one in four crates releases a **Giant Coffee**. It pops out,
 lands and walks off at 0.8 — turning at walls but happily strolling off a ledge, so catch it
 before it drops down a gap.
 
@@ -20,8 +33,8 @@ as a warning.
 
 It does not make him immortal. Exposed cabling and open gaps still end a run, and Promptbot
 9000 or one of its prompt bolts will burn the charge off early instead of costing a life.
-Crates that don't roll a Giant Coffee still roll the usual one-hit shield — which absorbs a
-hit from an enemy *or* from the floor cabling, launching you clear of the run either way.
+The one-hit shield absorbs a hit from an enemy *or* from the floor cabling, launching you
+clear of the run either way.
 
 ## Soundtrack
 
@@ -39,6 +52,8 @@ wakes up. `M` or the button under the canvas mutes it, and the choice is remembe
 | `Shift` | Sprint |
 | `P` | Pause |
 | `M` | Mute / unmute the music |
+
+Pause and music also have buttons under the canvas.
 | `Enter` | Start / restart |
 
 Keyboard only. Three lives, a 300-second SLA, and the level restarts on a death but keeps

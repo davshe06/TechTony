@@ -49,5 +49,8 @@ export const sfx = {
   giant:   () => { beep(440, .1, 'triangle', .05); beepLater(100, 660, .14, 'triangle', .045); },
   charge:  () => { beep(660, .1, 'triangle', .06); beepLater(90, 880, .1, 'triangle', .055);
                    beepLater(180, 1320, .26, 'triangle', .05); },
-  discharge:() => { beep(420, .18, 'square', .04); beepLater(120, 260, .24, 'square', .035); }
+  discharge:() => { beep(420, .18, 'square', .04); beepLater(120, 260, .24, 'square', .035); },
+  life:    () => { beep(784, .1, 'triangle', .055); beepLater(95, 988, .1, 'triangle', .05);
+                   beepLater(190, 1175, .3, 'triangle', .05); },
+  respawn: () => { beep(300, .1, 'triangle', .045); beepLater(110, 450, .16, 'triangle', .04); }
 };
