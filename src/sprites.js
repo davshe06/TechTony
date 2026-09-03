@@ -78,6 +78,43 @@ export function drawBit(r, b, cam) {
   }
 }
 
+export function drawBoss(r, B, cam) {
+  const ctx = r.ctx;
+  const x = Math.round(B.x - cam), y = Math.round(B.y);
+  if (B.hit > 0 && Math.floor(r.tick / 3) % 2) return;   // flicker while invulnerable
+
+  const g = ctx.createRadialGradient(x + 17, y + 13, 4, x + 17, y + 13, 44);
+  g.addColorStop(0, 'rgba(145,132,217,.22)');
+  g.addColorStop(1, 'rgba(145,132,217,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - 28, y - 28, 90, 84);
+
+  r.px(x, y, 34, 22, C.surf);
+  r.px(x, y, 34, 1, C.a600);
+  r.px(x + 1, y + 1, 32, 20, C.a900);
+  r.px(x + 8, y + 22, 6, 4, C.a900);                     // speech tail
+
+  const angry = B.hit > 0 ? C.n200 : (((r.tick / 12) | 0) % 4 ? C.a400 : C.a300);
+  r.px(x + 6, y + 6, 7, 5, angry);
+  r.px(x + 21, y + 6, 7, 5, angry);
+  r.px(x + 6, y + 6, 7, 1, C.n100);
+  r.px(x + 21, y + 6, 7, 1, C.n100);
+
+  for (let i = 0; i < 7; i++) {                          // waveform mouth
+    const h = 1 + Math.abs(Math.sin(r.tick * .12 + i)) * 4;
+    r.px(x + 8 + i * 3, y + 18 - h, 2, h, C.a600);
+  }
+  r.px(x + 16, y - 5, 2, 5, C.a700);                     // antenna
+  r.px(x + 14, y - 8, 6, 3, C.a400);
+
+  const w = 34 * (B.hp / B.maxHp);
+  r.px(x, y - 14, 34, 3, C.n900);
+  r.px(x, y - 14, Math.max(0, w), 3, C.a400);
+  ctx.font = '600 5px Inter, sans-serif';
+  ctx.fillStyle = C.n400;
+  ctx.fillText('PROMPTBOT 9000', x - 4, y - 17);
+}
+
 export function drawShot(r, o, cam) {
   const x = Math.round(o.x - cam), y = Math.round(o.y);
   r.ctx.fillStyle = 'rgba(210,206,253,.16)';

@@ -41,5 +41,9 @@ export const sfx = {
   bitcoin: () => { beep(980, .09, 'triangle', .05); beepLater(90, 1460, .12, 'triangle', .045); },
   guard:   () => beep(240, .2, 'sawtooth', .04),
   death:   () => beep(300, .5, 'sawtooth', .05),
-  win:     () => { beep(880, .12, 'triangle'); beepLater(130, 1320, .22, 'triangle'); }
+  win:     () => { beep(880, .12, 'triangle'); beepLater(130, 1320, .22, 'triangle'); },
+  bossIn:  () => { beep(180, .5, 'sawtooth', .05); beepLater(260, 140, .6, 'sawtooth', .05); },
+  bossFire:() => beep(300, .12, 'square', .035),
+  bossHit: () => beep(620, .12, 'square', .05),
+  bossDown:() => { beep(880, .16, 'triangle'); beepLater(160, 1180, .3, 'triangle'); }
 };

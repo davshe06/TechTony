@@ -215,3 +215,81 @@ export function stepPickups(p, coins, bits, fx, out) {
     sfx.bitcoin();
   }
 }
+
+// ---- boss: Promptbot 9000 ----
+
+export const BOSS_MIN_X = 210 * T;
+export const BOSS_MAX_X = 230 * T;
+
+export function makeBoss() {
+  return { x: 228 * T, y: 4 * T, home: 4 * T, w: 34, h: 26,
+           hp: 4, maxHp: 4, t: 0, hit: 0, fire: 90 };
+}
+
+// Returns true once the boss dies, so the caller can clear the gate.
+export function stepBoss(B, p, shots, fx, out) {
+  B.t++;
+
+  // Every hit taken raises "rage", which speeds the hover, the chase and the
+  // fire rate together — the fight tightens as its HP drops.
+  const rage = (B.maxHp - B.hp) * .25;
+  B.y = B.home + Math.sin(B.t * (.03 + rage * .012)) * 26;
+  const dir = (p.x - 10) > B.x ? 1 : -1;
+  B.x += dir * (.34 + rage * .34);
+  B.x = Math.max(BOSS_MIN_X, Math.min(BOSS_MAX_X, B.x));
+
+  if (B.hit > 0) B.hit--;
+
+  B.fire--;
+  if (B.fire <= 0) {
+    B.fire = Math.max(38, 96 - (B.maxHp - B.hp) * 16);
+    const n = 1 + (B.maxHp - B.hp > 1 ? 1 : 0);   // second bolt past half health
+    for (let i = 0; i < n; i++) {
+      const dx = p.x + 5 - (B.x + 17), dy = p.y + 6 - (B.y + 20);
+      const d = Math.max(1, Math.hypot(dx, dy));
+      shots.push({ x: B.x + 16, y: B.y + 20,
+                   vx: dx / d * 1.5, vy: dy / d * 1.5 + (i - .5) * .35, life: 190 });
+    }
+    sfx.bossFire();
+  }
+
+  if (p.dead) return false;
+  const touching = p.x < B.x + B.w - 3 && p.x + p.w - 3 > B.x
+                && p.y < B.y + B.h && p.y + p.h > B.y;
+  if (!touching) return false;
+
+  if (p.vy > 1 && p.y + p.h - p.vy <= B.y + 10 && B.hit === 0) {
+    B.hp--;
+    B.hit = 46;                                   // i-frames + flicker between hits
+    p.vy = -6.4;
+    burst(fx, B.x + 17, B.y + 6, C.a300);
+    sfx.bossHit();
+    if (B.hp <= 0) {
+      for (let i = 0; i < 3; i++) burst(fx, B.x + 8 + i * 10, B.y + 10, C.a400);
+      fx.pops.push({ x: B.x + 2, y: B.y, vy: -.8, life: 90, kind: 'boss' });
+      sfx.bossDown();
+      out.bits += 5;
+      return true;
+    }
+  } else if (B.hit === 0) {
+    hurt(p, fx);
+  }
+  return false;
+}
+
+// Bolts die on contact with the player, on hitting anything solid, or on age.
+export function stepShots(world, shots, p, fx) {
+  return shots.filter(o => {
+    o.x += o.vx; o.y += o.vy; o.life--;
+    if (!p.dead && p.x < o.x + 5 && p.x + p.w > o.x && p.y < o.y + 5 && p.y + p.h > o.y) {
+      hurt(p, fx);
+      return false;
+    }
+    return o.life > 0 && !SOLID(world.tileAt(o.x + 2, o.y + 2));
+  });
+}
+
+// The gate is a solid column until the boss falls, then the corridor opens.
+export function openGate(world, gate) {
+  for (let r = 3; r <= 9; r++) world.grid[r][gate] = 0;
+}

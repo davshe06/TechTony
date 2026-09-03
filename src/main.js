@@ -4,8 +4,9 @@ import { T, VW, SPEC } from './level.js';
 import { World, createLoop } from './engine.js';
 import { Renderer, makeLeds } from './render.js';
 import { makePlayer, makeFx, stepPlayer, stepFx, makeEnemies, stepEnemies,
-         makePickups, stepPickups } from './entities.js';
-import { drawEnemy, drawCoffee, drawBit, drawPops } from './sprites.js';
+         makePickups, stepPickups, makeBoss, stepBoss, stepShots,
+         openGate } from './entities.js';
+import { drawEnemy, drawCoffee, drawBit, drawPops, drawBoss, drawShot } from './sprites.js';
 import { sfx, context as audioContext } from './audio.js';
 
 const START_LIVES = 3;
@@ -32,6 +33,7 @@ const game = {
   state: { coffee: 0, bits: 0, lives: START_LIVES, time: START_TIME, pct: 0 },
   world: null, player: null, fx: null, leds: null,
   enemies: [], coins: [], bits: [],
+  boss: null, bossDown: false, shots: [],
   timeF: START_TIME * 60, goalX: SPEC.goal * T
 };
 
@@ -44,6 +46,9 @@ function loadLevel() {
   const pickups = makePickups(SPEC);
   game.coins = pickups.coins;
   game.bits = pickups.bits;
+  game.boss = null;
+  game.bossDown = false;
+  game.shots = [];
   game.timeF = START_TIME * 60;
   game.world.updateCamera(game.player);
 }
@@ -89,6 +94,19 @@ function step() {
     stepEnemies(world, game.enemies, player, fx);
     stepPickups(player, game.coins, game.bits, fx, out);
   }
+
+  // Promptbot wakes as the player closes on tile 208 and only ever spawns once.
+  if (!game.boss && !game.bossDown && player.x > SPEC.bossAt * T - 60) {
+    game.boss = makeBoss();
+    sfx.bossIn();
+  }
+  if (game.boss && stepBoss(game.boss, player, game.shots, fx, out)) {
+    game.boss = null;
+    game.bossDown = true;
+    game.shots = [];
+    openGate(world, SPEC.gate);
+  }
+  game.shots = stepShots(world, game.shots, player, fx);
   state.coffee += out.coffee;
   state.bits += out.bits;
 
@@ -126,6 +144,8 @@ function draw() {
     for (const c of game.coins) if (!c.got && onScreen(c.x)) drawCoffee(renderer, Math.round(c.x - cam), Math.round(c.y));
     for (const b of game.bits) if (!b.got && onScreen(b.x)) drawBit(renderer, b, cam);
     for (const e of game.enemies) if (e.alive && onScreen(e.x)) drawEnemy(renderer, e, cam);
+    if (game.boss) drawBoss(renderer, game.boss, cam);
+    for (const o of game.shots) drawShot(renderer, o, cam);
 
     renderer.particles(game.fx, cam);
     drawPops(renderer, game.fx.pops, cam);
