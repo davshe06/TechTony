@@ -41,7 +41,7 @@ html, body {
 /* ---- header / HUD ---- */
 
 .topbar, .statusbar {
-  width: 960px; max-width: 100%;
+  width: var(--stage-w, 960px); max-width: 100%;
   display: flex; gap: var(--s-6); flex-wrap: wrap;
 }
 .topbar { align-items: flex-end; justify-content: space-between; }
@@ -73,7 +73,7 @@ html, body {
 
 .stage {
   position: relative;
-  width: 960px; max-width: 100%;
+  width: var(--stage-w, 960px); max-width: 100%;
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
@@ -155,6 +155,11 @@ canvas {
   animation: blink 1.4s steps(1) infinite;
 }
 @keyframes blink { 0%,60% { opacity: 1 } 61%,100% { opacity: .3 } }
+
+@media (prefers-reduced-motion: reduce) {
+  .blink { animation: none; }
+  .btn { transition: none; }
+}
 
 /* ---- buttons ---- */
 

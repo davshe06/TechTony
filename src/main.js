@@ -1,6 +1,6 @@
 // Bootstrap, game loop and the screen state machine.
 
-import { T, VW, SPEC } from './level.js';
+import { T, VW, VH, SCALE, SPEC } from './level.js';
 import { World, createLoop } from './engine.js';
 import { Renderer, makeLeds } from './render.js';
 import { makePlayer, makeFx, stepPlayer, stepFx, makeEnemies, stepEnemies,
@@ -8,6 +8,7 @@ import { makePlayer, makeFx, stepPlayer, stepFx, makeEnemies, stepEnemies,
          openGate } from './entities.js';
 import { drawEnemy, drawCoffee, drawBit, drawPops, drawBoss, drawShot } from './sprites.js';
 import { sfx, context as audioContext } from './audio.js';
+import { loadBests, recordRun, bestsLine } from './storage.js';
 
 const START_LIVES = 3;
 const START_TIME = 300;
@@ -22,7 +23,8 @@ const dom = {
     title: el('screen-title'), over: el('screen-over'),
     win: el('screen-win'), pause: el('screen-pause')
   },
-  overNote: el('over-note'), winNote: el('win-note')
+  overNote: el('over-note'), winNote: el('win-note'),
+  stage: el('stage'), bests: el('bests')
 };
 
 const renderer = new Renderer(dom.canvas);
@@ -70,9 +72,23 @@ function respawn() {
   game.state.time = START_TIME;
 }
 
+function showBests(b) {
+  const line = bestsLine(b || loadBests());
+  dom.bests.textContent = line;
+  dom.bests.hidden = !line;
+}
+
 function setScreen(next) {
   game.screen = next;
   for (const [name, node] of Object.entries(dom.screens)) node.hidden = name !== next;
+  if (next === 'over' || next === 'win') {
+    showBests(recordRun({
+      won: next === 'win',
+      seconds: START_TIME - game.state.time,
+      coffee: game.state.coffee,
+      bits: game.state.bits
+    }));
+  }
   if (next === 'over') {
     dom.overNote.textContent =
       'Tech Tony is out of uptime. The queue won this round — but twenty years says he takes the next one.';
@@ -182,12 +198,34 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
+// Losing focus pauses rather than letting the run bleed out unattended. Held
+// keys are dropped too, or the player comes back still walking.
+function pauseOnBlur() {
+  for (const k in keys) keys[k] = false;
+  if (game.screen === 'play') { setScreen('pause'); loop.resync(); }
+}
+window.addEventListener('blur', pauseOnBlur);
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseOnBlur(); });
+
+// Snap the stage to a whole multiple of the 320x192 logical frame so pixels
+// stay square; below one full frame wide, fall back to fluid width.
+function fitStage() {
+  const padding = 2 * 16.8;
+  const availW = document.documentElement.clientWidth - padding;
+  const availH = window.innerHeight - 210;          // header, status bar, gutters
+  const k = Math.min(Math.floor(availW / VW), Math.floor(availH / VH), SCALE);
+  document.documentElement.style.setProperty('--stage-w', k >= 1 ? `${VW * k}px` : '100%');
+}
+window.addEventListener('resize', fitStage);
+fitStage();
+
 for (const id of ['btn-start', 'btn-restart', 'btn-again']) el(id).addEventListener('click', start);
 
 // ---- go ----
 
 const loop = createLoop(() => { if (game.screen === 'play') step(); }, draw);
 dom.level.textContent = SPEC.name;
+showBests();
 loadLevel();
 loop.start();
 

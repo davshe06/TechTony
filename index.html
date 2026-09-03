@@ -23,7 +23,7 @@
       <div class="kicker">Twenty years of keeping it running</div>
       <h1 class="gametitle">Tech Tony — Sysadmin Quest</h1>
     </div>
-    <div class="hud">
+    <div class="hud" aria-live="off">
       <div class="stat"><span class="stat-label">Coffee</span><span class="stat-value" id="hud-coffee">0</span></div>
       <div class="stat"><span class="stat-label">Bitcoin</span><span class="stat-value accent" id="hud-bits">0</span></div>
       <div class="stat"><span class="stat-label">Uptime</span><span class="stat-value dots" id="hud-lives">●●●</span></div>
@@ -41,11 +41,11 @@
       Hold Shift to sprint. P pauses. Enter starts or restarts the game.
     </p>
 
-    <section class="overlay title-screen" id="screen-title">
+    <section class="overlay title-screen" id="screen-title" aria-labelledby="title-heading">
       <div class="portrait"><img src="./assets/tony.jpg" alt="Anthony"></div>
       <div class="title-copy">
         <div class="kicker accent">Twenty years of service · zero unplanned downtime</div>
-        <h2>Tech Tony vs the ticket queue</h2>
+        <h2 id="title-heading">Tech Tony vs the ticket queue</h2>
         <p>The queue went feral in time for the anniversary. Phishing mail, blue screens and a rogue
            AI chatbot are loose on the data centre floor. Stomp them, bank the coffee, reach the
            mainframe before the SLA expires.</p>
@@ -57,22 +57,22 @@
       </div>
     </section>
 
-    <section class="overlay center-screen" id="screen-over" hidden>
+    <section class="overlay center-screen" id="screen-over" role="alertdialog" aria-labelledby="over-heading" hidden>
       <div class="kicker accent">Sev 1 declared</div>
-      <h2>Total outage</h2>
+      <h2 id="over-heading">Total outage</h2>
       <p class="note" id="over-note"></p>
       <button class="btn" id="btn-restart" type="button">Reboot</button>
     </section>
 
-    <section class="overlay center-screen win-screen" id="screen-win" hidden>
+    <section class="overlay center-screen win-screen" id="screen-win" role="alertdialog" aria-labelledby="win-heading" hidden>
       <div class="kicker accent-300">All systems green</div>
-      <h2>Mainframe reached</h2>
+      <h2 id="win-heading">Mainframe reached</h2>
       <p class="note" id="win-note"></p>
       <p class="sign">Happy 20th, Anthony. From everyone who never had to open a ticket.</p>
       <button class="btn" id="btn-again" type="button">Run it back</button>
     </section>
 
-    <section class="overlay pause-screen" id="screen-pause" hidden>
+    <section class="overlay pause-screen" id="screen-pause" role="status" hidden>
       <div class="blink">Paused</div>
     </section>
   </div>
