@@ -137,8 +137,19 @@ canvas {
 .bests { font-size: 11px !important; letter-spacing: .1em; text-transform: uppercase; color: var(--n-600) !important; }
 
 .center-screen {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex;
+  overflow-y: auto;                       /* the win note can outgrow a small stage */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* `margin: auto` rather than justify-content: center — a centred flex item that
+   overflows gets its top clipped and cannot be scrolled back to; auto margins
+   centre it and still let it scroll. */
+.screen-body {
+  margin: auto;
+  display: flex; flex-direction: column; align-items: center;
   gap: var(--s-5); text-align: center;
+  width: 100%;
 }
 .center-screen h2 { font-size: 32px; letter-spacing: -.01em; }
 .note { margin: 0; font-size: 14px; color: var(--n-400); line-height: 1.7; max-width: 420px; }
@@ -146,6 +157,20 @@ canvas {
 .win-screen { background: rgba(38,42,96,.95); }
 .win-screen h2 { font-size: 34px; }
 .win-screen .note { font-size: 15px; color: var(--n-200); line-height: 1.8; max-width: 520px; }
+
+/* The reason the whole thing exists. */
+.tribute {
+  margin: var(--s-2) 0 0;
+  max-width: 600px;
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid rgba(210,206,253,.34);
+  border-radius: var(--radius-md);
+  background: rgba(22,24,38,.32);
+  font-size: 13.5px; line-height: 1.9;
+  color: var(--n-100);
+  text-align: left;
+  text-wrap: pretty;
+}
 .sign { margin: 0; font-size: 13px; color: var(--a-300); line-height: 1.7; }
 
 .pause-screen {
@@ -201,6 +226,8 @@ canvas {
 
 @media (max-width: 720px) {
   .overlay { padding: var(--s-6); }
+  .screen-body { gap: var(--s-3); }
+  .tribute { font-size: 12px; line-height: 1.75; padding: var(--s-3) var(--s-4); }
   .title-screen { flex-direction: column; align-items: flex-start; gap: var(--s-5); justify-content: center; }
   .portrait { width: 96px; height: 96px; }
   .overlay h2 { font-size: 26px; }
@@ -333,4 +360,15 @@ body.touch-mode .keycaps { display: none; }
 @media (max-width: 520px) and (orientation: portrait) {
   .touchpad { width: 44px; height: 44px; font-size: 16px; }
   .touch-cluster { gap: 6px; padding: 6px 7px; }
+}
+
+/* A short stage leaves very little room for the win screen, so tighten it and
+   let the message scroll rather than pushing the button off the bottom. */
+@media (max-height: 420px), (max-width: 520px) {
+  .center-screen { padding: var(--s-4); }
+  .center-screen h2, .win-screen h2 { font-size: 20px; }
+  .win-screen .note, .note { font-size: 12px; line-height: 1.6; }
+  .sign { font-size: 11px; }
+  .screen-body { gap: var(--s-2); }
+  .tribute { font-size: 11px; line-height: 1.7; padding: var(--s-2) var(--s-3); }
 }
