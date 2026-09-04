@@ -44,6 +44,19 @@ export function saveMuted(v) {
   try { localStorage.setItem(MUTE_KEY, v ? '1' : '0'); } catch { /* unavailable */ }
 }
 
+const VOL_KEY = 'techtony.volume.v1';
+
+export function loadVolume() {
+  try {
+    const v = parseFloat(localStorage.getItem(VOL_KEY));
+    return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.7;
+  } catch { return 0.7; }
+}
+
+export function saveVolume(v) {
+  try { localStorage.setItem(VOL_KEY, String(v)); } catch { /* unavailable */ }
+}
+
 export function formatTime(s) {
   if (s === null) return '—';
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;

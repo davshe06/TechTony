@@ -9,8 +9,10 @@ import { makePlayer, makeFx, stepPlayer, stepFx, makeEnemies, stepEnemies,
 import { drawEnemy, drawCoffee, drawBit, drawPops, drawBoss, drawShot } from './sprites.js';
 import { GIANT_CHANCE, LIFE_CHANCE, POWER_TICKS, makeDrop, stepDrops,
          auraVisible, drawAura, drawDrop } from './powerup.js';
-import { sfx, context as audioContext } from './audio.js';
-import { loadBests, recordRun, bestsLine, loadMuted, saveMuted } from './storage.js';
+import { sfx, context as audioContext, setVolume } from './audio.js';
+import { loadBests, recordRun, bestsLine, loadMuted, saveMuted,
+         loadVolume, saveVolume } from './storage.js';
+import * as touch from './touch.js';
 import * as music from './music.js';
 
 const START_LIVES = 3;
@@ -30,7 +32,9 @@ const dom = {
   },
   overNote: el('over-note'), winNote: el('win-note'),
   stage: el('stage'), bests: el('bests'),
-  mute: el('btn-mute'), pause: el('btn-pause')
+  stageFit: document.querySelector('.stage-fit'),
+  mute: el('btn-mute'), pause: el('btn-pause'),
+  vol: el('vol'), rotate: el('rotate-hint')
 };
 
 const renderer = new Renderer(dom.canvas);
@@ -104,6 +108,11 @@ function setScreen(next) {
   game.screen = next;
   for (const [name, node] of Object.entries(dom.screens)) node.hidden = name !== next;
   dom.pause.textContent = next === 'pause' ? 'Resume' : 'Pause';
+  touch.setPlaying(next === 'play');
+  if (dom.rotate) {
+    const portrait = window.innerHeight > window.innerWidth;
+    dom.rotate.hidden = !(portrait && touch.isTouchLikely() && next === 'play');
+  }
   dom.pause.disabled = next !== 'play' && next !== 'pause';
   if (next === 'pause') music.suspend();
   else if (next === 'play') music.resume();
@@ -241,6 +250,7 @@ window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if ([' ', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(k)) e.preventDefault();
   keys[k] = true;
+  touch.noteKeyboard();
   if (k === 'p') togglePause();
   if (k === 'm') toggleMute();
   if (e.key === 'Enter' && game.screen !== 'play') start();
@@ -259,11 +269,27 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 // Snap the stage to a whole multiple of the 320x192 logical frame so pixels
 // stay square; below one full frame wide, fall back to fluid width.
 function fitStage() {
-  const padding = 2 * 16.8;
-  const availW = document.documentElement.clientWidth - padding;
-  const availH = window.innerHeight - 210;          // header, status bar, gutters
-  const k = Math.min(Math.floor(availW / VW), Math.floor(availH / VH), SCALE);
-  document.documentElement.style.setProperty('--stage-w', k >= 1 ? `${VW * k}px` : '100%');
+  const compact = document.documentElement.clientWidth < 520 || window.innerHeight < 480;
+
+  if (compact) {
+    // Ask the browser what space is actually left rather than adding up the
+    // chrome ourselves: the header wraps differently at every width, and an
+    // arithmetic guess that is 40px out puts the canvas off the screen. The
+    // wrapper's height does not depend on the stage width, so one pass settles.
+    const fit = dom.stageFit.getBoundingClientRect();
+    const w = Math.max(200, Math.floor(Math.min(fit.width, fit.height * (VW / VH))));
+    document.documentElement.style.setProperty('--stage-w', `${w}px`);
+  } else {
+    const availW = document.documentElement.clientWidth - 2 * 16.8;
+    const availH = window.innerHeight - 210;
+    const k = Math.min(Math.floor(availW / VW), Math.floor(availH / VH), SCALE);
+    const fluid = Math.floor(Math.min(availW, availH * (VW / VH)));
+    document.documentElement.style.setProperty('--stage-w',
+      k >= 1 ? `${VW * k}px` : `${Math.max(200, fluid)}px`);
+  }
+
+  const portrait = window.innerHeight > window.innerWidth;
+  dom.rotate.hidden = !(portrait && touch.isTouchLikely() && game.screen === 'play');
 }
 window.addEventListener('resize', fitStage);
 fitStage();
@@ -272,6 +298,12 @@ function togglePause() {
   if (game.screen !== 'play' && game.screen !== 'pause') return;
   setScreen(game.screen === 'play' ? 'pause' : 'play');
   loop.resync();
+}
+
+function applyVolume(pct) {
+  const v = Math.max(0, Math.min(100, pct)) / 100;
+  setVolume(v);
+  saveVolume(v);
 }
 
 function toggleMute() {
@@ -288,16 +320,25 @@ for (const id of ['btn-start', 'btn-restart', 'btn-again']) el(id).addEventListe
 for (const [node, fn] of [[dom.mute, toggleMute], [dom.pause, togglePause]]) {
   node.addEventListener('click', () => { fn(); node.blur(); });
 }
+dom.vol.addEventListener('input', () => applyVolume(+dom.vol.value));
+// Dragging the slider leaves it focused, where Space and the arrows would move
+// the thumb instead of the player.
+dom.vol.addEventListener('change', () => dom.vol.blur());
 
 // ---- go ----
 
 const loop = createLoop(() => { if (game.screen === 'play') step(); }, draw);
 dom.level.textContent = SPEC.name;
 dom.pause.disabled = true;
+const vol0 = loadVolume();
+dom.vol.value = String(Math.round(vol0 * 100));
+setVolume(vol0);
 music.setMuted(loadMuted());
 dom.mute.textContent = music.isMuted() ? 'Music off' : 'Music on';
 dom.mute.setAttribute('aria-pressed', String(music.isMuted()));
 showBests();
+touch.init(keys);
+touch.setPlaying(false);
 loadLevel();
 loop.start();
 

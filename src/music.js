@@ -6,7 +6,7 @@
 // The interval only decides *what* to queue; the AudioContext clock decides
 // when it sounds.
 
-import { context } from './audio.js';
+import { context, bus } from './audio.js';
 
 const LOOKAHEAD_MS = 25;      // how often we top up the queue
 const SCHEDULE_AHEAD = 0.14;  // seconds of music queued at any moment
@@ -54,9 +54,11 @@ function ensure() {
   const ac = context();
   if (!ac) return null;
   if (!master) {
+    const out = bus();
+    if (!out) return null;
     master = ac.createGain();
     master.gain.value = muted ? 0 : VOLUME;
-    master.connect(ac.destination);
+    master.connect(out);          // through the shared bus, not straight out
   }
   return ac;
 }

@@ -53,7 +53,11 @@ wakes up. `M` or the button under the canvas mutes it, and the choice is remembe
 | `P` | Pause |
 | `M` | Mute / unmute the music |
 
-Pause and music also have buttons under the canvas.
+Pause, music and a volume slider sit under the canvas.
+
+On a touchscreen, on-screen pads fade in at the corners of the play area — move on the left,
+jump and sprint on the right. They appear on the first touch and disappear again the moment
+you use a real key, so a laptop with a touchscreen never gets stuck with them.
 | `Enter` | Start / restart |
 
 Keyboard only. Three lives, a 300-second SLA, and the level restarts on a death but keeps
@@ -84,7 +88,8 @@ accumulator; rendering happens once per animation frame, and the two are kept ap
 | `src/audio.js` | WebAudio blips |
 | `src/music.js` | the generated chiptune score |
 | `src/powerup.js` | the Giant Coffee and the charge it grants |
-| `src/storage.js` | personal bests in localStorage |
+| `src/touch.js` | on-screen controls for touch devices |
+| `src/storage.js` | personal bests, volume and mute in localStorage |
 
 The canvas is 960×576 backing a 320×192 logical frame at integer scale, with smoothing off.
 

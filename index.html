@@ -31,6 +31,7 @@
     </div>
   </header>
 
+  <div class="stage-fit">
   <div class="stage" id="stage">
     <canvas id="game" width="960" height="576"
             aria-label="Tech Tony: Sysadmin Quest. A side-scrolling platformer played with the keyboard."
@@ -39,7 +40,8 @@
     <p class="sr-only">
       Controls: A and D or the left and right arrow keys move. Space, W or the up arrow jumps.
       Hold Shift to sprint. P pauses. M mutes and unmutes the music.
-      Enter starts or restarts the game.
+      Enter starts or restarts the game. On a touchscreen, on-screen pads appear
+      in the corners of the play area: move on the left, jump and sprint on the right.
     </p>
 
     <section class="overlay title-screen" id="screen-title" aria-labelledby="title-heading">
@@ -73,16 +75,26 @@
       <button class="btn" id="btn-again" type="button">Run it back</button>
     </section>
 
+    <div class="touch-controls" id="touch-controls" hidden></div>
+
     <section class="overlay pause-screen" id="screen-pause" role="status" hidden>
       <div class="blink">Paused</div>
     </section>
   </div>
+  </div>
+
+  <p class="rotate-hint" id="rotate-hint" hidden>Turn your phone sideways for a wider view</p>
 
   <footer class="statusbar">
     <span id="status-level">Data centre — floor 3</span>
     <span class="controls">
       <button class="linkbtn" id="btn-pause" type="button">Pause</button>
       <button class="linkbtn" id="btn-mute" type="button" aria-pressed="false">Music on</button>
+      <label class="volume" for="vol">
+        <span class="volume-label">Volume</span>
+        <input type="range" id="vol" min="0" max="100" step="1" value="70"
+               aria-label="Volume">
+      </label>
     </span>
     <span id="status-progress">Route to mainframe — 0%</span>
   </footer>

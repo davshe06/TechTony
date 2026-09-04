@@ -1,7 +1,11 @@
 // Tiny WebAudio blips. The context is created lazily on the first input so
 // browser autoplay policy doesn't leave us with a suspended context.
+//
+// Everything audible — these blips and the score in music.js — runs through
+// one master gain, so the volume slider is a single honest control rather
+// than two that drift apart.
 
-let ac = null;
+let ac = null, master = null, level = 1;
 
 export function context() {
   if (!ac) {
@@ -12,15 +16,35 @@ export function context() {
   return ac;
 }
 
+// The bus every voice connects to. music.js hangs its own submix off this.
+export function bus() {
+  const a = context();
+  if (!a) return null;
+  if (!master) {
+    master = a.createGain();
+    master.gain.value = level;
+    master.connect(a.destination);
+  }
+  return master;
+}
+
+// 0..1. Squared so the slider tracks perceived loudness rather than raw gain,
+// which otherwise does almost nothing until the last quarter of travel.
+export function setVolume(v) {
+  level = Math.max(0, Math.min(1, v)) ** 2;
+  if (master) master.gain.value = level;
+}
+
 export function beep(f, d, type = 'square', vol = 0.045) {
   const a = context();
-  if (!a) return;
+  const out = bus();
+  if (!a || !out) return;
   const o = a.createOscillator(), g = a.createGain();
   o.type = type;
   o.frequency.value = f;
   g.gain.value = vol;
   g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + d);
-  o.connect(g).connect(a.destination);
+  o.connect(g).connect(out);
   o.start();
   o.stop(a.currentTime + d);
 }
